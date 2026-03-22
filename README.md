@@ -12,7 +12,7 @@ This is a simple Flutter application that acts as a web wrapper. It automaticall
 <img width="326" height="47" alt="image" src="https://github.com/user-attachments/assets/f5f9e4a7-439a-417a-8ce9-8e117df54278" />
 
 4. Click on the **Run workflow** dropdown button.
-<img width="151" height="60" alt="image" src="https://github.com/user-attachments/assets/ee02247d-104a-415a-868a-d9b5712a942f" />
+<img width="131" height="44" alt="image" src="https://github.com/user-attachments/assets/eaabf5d1-1d11-41dc-9cc1-7357873858bb" />
 
 5. Fill in the required parameters:
 <img width="312" height="482" alt="image" src="https://github.com/user-attachments/assets/4c21422a-9639-4f8a-94b7-d24f93c56ecf" />
