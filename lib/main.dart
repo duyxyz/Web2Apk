@@ -12,9 +12,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: WebAppScreen(),
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: ThemeMode.system, // Tự động nhận diện sáng tối
+      home: const WebAppScreen(),
     );
   }
 }
@@ -39,11 +42,13 @@ class _WebAppScreenState extends State<WebAppScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (String url) {
-            // Chặn hiệu ứng cuộn cao su/loè viền bằng CSS/JS
-            controller.runJavaScript(
-                "document.body.style.overscrollBehavior = 'none';"
-                "document.documentElement.style.overscrollBehavior = 'none';"
-            );
+            // Chặn hiệu ứng cuộn cao su/loè viền mạnh bằng cách tiêm thẳng tag style CSS ưu tiên cao nhất
+            controller.runJavaScript("""
+              var style = document.createElement('style');
+              style.type = 'text/css';
+              style.innerHTML = 'html, body { overscroll-behavior: none !important; }';
+              document.head.appendChild(style);
+            """);
           },
         ),
       )
@@ -52,6 +57,10 @@ class _WebAppScreenState extends State<WebAppScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Nhận diện giao diện Sáng / Tối từ hệ thống thiết bị
+    final isDarkMode = MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final bgColor = isDarkMode ? Colors.black : Colors.white;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
@@ -63,8 +72,12 @@ class _WebAppScreenState extends State<WebAppScreen> {
         }
       },
       child: Scaffold(
-        body: SafeArea(
-          child: WebViewWidget(controller: controller),
+        backgroundColor: bgColor,
+        body: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+          child: SafeArea(
+            child: WebViewWidget(controller: controller),
+          ),
         ),
       ),
     );
