@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "duyxyz",
-    "slug": "duyxyz",
+    "name": "example",
+    "slug": "example",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.duyxyz.app",
+      "bundleIdentifier": "com.example.app",
       "userInterfaceStyle": "automatic",
       "backgroundColor": "#000000",
       "splash": {
@@ -29,7 +29,7 @@
       }
     },
     "android": {
-      "package": "com.duyxyz.app",
+      "package": "com.example.app",
       "userInterfaceStyle": "automatic",
       "backgroundColor": "#000000",
       "permissions": [],

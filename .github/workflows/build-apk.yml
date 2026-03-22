@@ -15,6 +15,10 @@ on:
         description: 'Link tải Logo/Icon (Hỗ trợ jpg, png, webp...)'
         required: false
         default: ''
+      package_name:
+        description: 'Tên gói ứng dụng (Package Name, VD: com.congty.app)'
+        required: false
+        default: 'com.example.app'
 
 jobs:
   build:
@@ -24,15 +28,19 @@ jobs:
       - name: Kiểm tra mã nguồn (Checkout)
         uses: actions/checkout@v4
 
-      - name: Thiết lập cấu hình tuỳ chỉnh (App Name & URL & Icon)
+      - name: Thiết lập cấu hình tuỳ chỉnh (App Name, URL, Icon & Package)
         if: github.event_name == 'workflow_dispatch'
         run: |
-          # Dùng NodeJS để cập nhật tên app trong app.json
+          # Dùng NodeJS để cập nhật thông tin trong app.json
           node -e "
             const fs = require('fs');
             const file = 'app.json';
             const data = JSON.parse(fs.readFileSync(file, 'utf8'));
             data.expo.name = process.env.APP_NAME || data.expo.name;
+            if (process.env.PACKAGE_NAME) {
+              if (data.expo.android) data.expo.android.package = process.env.PACKAGE_NAME;
+              if (data.expo.ios) data.expo.ios.bundleIdentifier = process.env.PACKAGE_NAME;
+            }
             fs.writeFileSync(file, JSON.stringify(data, null, 2));
           "
           
@@ -59,6 +67,7 @@ jobs:
           APP_NAME: ${{ github.event.inputs.app_name }}
           WEB_URL: ${{ github.event.inputs.web_url }}
           ICON_URL: ${{ github.event.inputs.icon_url }}
+          PACKAGE_NAME: ${{ github.event.inputs.package_name }}
 
       - name: Thiết lập Node.js 20
         uses: actions/setup-node@v4
