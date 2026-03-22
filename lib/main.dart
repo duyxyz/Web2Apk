@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter/services.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
@@ -30,30 +30,18 @@ class WebAppScreen extends StatefulWidget {
 }
 
 class _WebAppScreenState extends State<WebAppScreen> {
-  late final WebViewController controller;
+  InAppWebViewController? webViewController;
 
-  @override
-  void initState() {
-    super.initState();
-    controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0x00000000))
-      ..setUserAgent('Mozilla/5.0 (Linux; Android 13; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36')
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageFinished: (String url) {
-            // Chặn hiệu ứng cuộn cao su/loè viền mạnh bằng cách tiêm thẳng tag style CSS ưu tiên cao nhất
-            controller.runJavaScript("""
-              var style = document.createElement('style');
-              style.type = 'text/css';
-              style.innerHTML = 'html, body { overscroll-behavior: none !important; }';
-              document.head.appendChild(style);
-            """);
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse('https://www.example.com/'));
-  }
+  // Tối ưu mạnh mẽ Webview Engine mới với Hybrid Composition và Native OverScroll chặn 100% hiệu ứng cao su
+  final InAppWebViewSettings settings = InAppWebViewSettings(
+    userAgent: 'Mozilla/5.0 (Linux; Android 13; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
+    transparentBackground: true,
+    overScrollMode: OverScrollMode.NEVER, // Chặn hiệu ứng loè viền cực xịn tận gốc C++ Android
+    javaScriptEnabled: true,
+    domStorageEnabled: true,
+    databaseEnabled: true, // Lưu bộ đệm tĩnh cục bộ thay vì load đi load lại
+    useHybridComposition: true, // Ép dùng phần cứng ảo Native Layer của Android, lướt siêu nhanh không bị drop giật frame
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -65,8 +53,8 @@ class _WebAppScreenState extends State<WebAppScreen> {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         if (didPop) return;
-        if (await controller.canGoBack()) {
-          controller.goBack();
+        if (webViewController != null && await webViewController!.canGoBack()) {
+          webViewController!.goBack();
         } else {
           SystemNavigator.pop();
         }
@@ -76,7 +64,13 @@ class _WebAppScreenState extends State<WebAppScreen> {
         body: AnnotatedRegion<SystemUiOverlayStyle>(
           value: isDarkMode ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
           child: SafeArea(
-            child: WebViewWidget(controller: controller),
+            child: InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri('https://www.example.com/')),
+              initialSettings: settings,
+              onWebViewCreated: (controller) {
+                webViewController = controller;
+              },
+            ),
           ),
         ),
       ),
