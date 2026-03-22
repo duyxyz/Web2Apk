@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Flutter APK
 
 on:
   workflow_dispatch:
@@ -7,6 +7,10 @@ on:
         description: 'Tên hiển thị của App (VD: Tên Ứng Dụng)'
         required: false
         default: 'example'
+      package_name:
+        description: 'Tên gói ứng dụng (Package Name, VD: com.example.app)'
+        required: false
+        default: 'com.example.app'
       web_url:
         description: 'Địa chỉ Website cần nạp (VD: https://google.com/)'
         required: false
@@ -15,10 +19,6 @@ on:
         description: 'Link tải Logo/Icon (Hỗ trợ jpg, png, webp...)'
         required: false
         default: ''
-      package_name:
-        description: '(Package Name, VD: com.example.app)'
-        required: false
-        default: 'com.example.app'
 
 jobs:
   build:
@@ -28,88 +28,83 @@ jobs:
       - name: Kiểm tra mã nguồn (Checkout)
         uses: actions/checkout@v4
 
-      - name: Thiết lập cấu hình tuỳ chỉnh (App Name, URL, Icon & Package)
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          # Dùng NodeJS để cập nhật thông tin trong app.json
-          node -e "
-            const fs = require('fs');
-            const file = 'app.json';
-            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-            data.expo.name = process.env.APP_NAME || data.expo.name;
-            if (process.env.PACKAGE_NAME) {
-              if (data.expo.android) data.expo.android.package = process.env.PACKAGE_NAME;
-              if (data.expo.ios) data.expo.ios.bundleIdentifier = process.env.PACKAGE_NAME;
-            }
-            fs.writeFileSync(file, JSON.stringify(data, null, 2));
-          "
-          # Dùng sed để thay đổi đường link trong App.js
-          URL="${WEB_URL:-https://www.example.com/}"
-          sed -i "s|https://www.example.com/|$URL|g" App.js
-          
-          # Tải và chuyển đổi Icon sang png nếu có điền link
-          if [ -n "$ICON_URL" ]; then
-            echo "Đang tải Icon từ: $ICON_URL"
-            curl -L -o /tmp/downloaded_icon "$ICON_URL"
-            
-            # Cài đặt ImageMagick để convert định dạng ảnh
-            sudo apt-get update
-            sudo apt-get install -y imagemagick
-            
-            # Convert và đưa vào assets gốc của thư mục
-            convert /tmp/downloaded_icon -resize 1024x1024 ./assets/icon.png
-            convert /tmp/downloaded_icon -resize 1024x1024 ./assets/adaptive-icon.png
-            convert /tmp/downloaded_icon -resize 1024x1024 ./assets/splash-icon.png
-            convert /tmp/downloaded_icon -resize 1024x1024 ./assets/favicon.png
-          fi
-        env:
-          APP_NAME: ${{ github.event.inputs.app_name }}
-          WEB_URL: ${{ github.event.inputs.web_url }}
-          ICON_URL: ${{ github.event.inputs.icon_url }}
-          PACKAGE_NAME: ${{ github.event.inputs.package_name }}
-
-      - name: Thiết lập Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-
       - name: Thiết lập Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Thiết lập Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Cài đặt thư viện (npm install)
-        run: npm ci
-
-      - name: Tạo mã nguồn Android (Expo Prebuild)
-        run: |
-          # Chạy Expo prebuild để sinh ra mã nguồn thuần tuỳ theo app.json hiện tại
-          npx expo prebuild --platform android --clean
-
-      - name: Cache Gradle Dependencies
-        uses: actions/cache@v4
+      - name: Thiết lập Flutter
+        uses: subosito/flutter-action@v2
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          channel: 'stable'
+          cache: true
 
-      - name: Build ứng dụng (Assemble Release APK)
+      - name: Khởi tạo Android platform cho Flutter
         run: |
-          cd android
-          # Thiết lập chỉ biên dịch kiến trúc dòng chip arm64-v8a để tối thiểu hoá dung lượng file APK
-          echo "reactNativeArchitectures=arm64-v8a" >> gradle.properties
-          ./gradlew assembleRelease
+          # Sinh ra mã nguồn Android gốc cho Flutter
+          rm -rf android
+          flutter create . --platforms android --org "${PKG_NAME}" --project-name app
+        env:
+          PKG_NAME: ${{ github.event.inputs.package_name || 'com.example.app' }}
 
-      - name: Tải file APK lên GitHub Artifacts
+      - name: Đổi tên hiển thị ứng dụng (App Name)
+        run: |
+          # Tìm dòng chứa label mặc định đổi thành tên mới
+          sed -i "s/android:label=\"app\"/android:label=\"${APP_NAME}\"/g" android/app/src/main/AndroidManifest.xml
+        env:
+          APP_NAME: ${{ github.event.inputs.app_name }}
+
+      - name: Áp dụng đường dẫn Website mới
+        run: |
+          # Thay thế URL trong mã nguồn Flutter
+          URL="${WEB_URL:-https://www.example.com/}"
+          sed -i "s|https://www.example.com/|$URL|g" lib/main.dart
+        env:
+          WEB_URL: ${{ github.event.inputs.web_url }}
+
+      - name: Cài đặt thư viện (Pub get)
+        run: flutter pub get
+
+      - name: Tải tĩnh và tạo App Icon tự động
+        run: |
+          if [ -n "$ICON_URL" ]; then
+            echo "Đang xử lý tải Icon từ: $ICON_URL"
+            mkdir -p assets
+            curl -L -o assets/icon.png "$ICON_URL"
+            
+            # Đảm bảo chuyển đổi đúng chuẩn icon.png vuông bằng ImageMagick
+            sudo apt-get update
+            sudo apt-get install -y imagemagick
+            convert assets/icon.png -resize 1024x1024 assets/icon.png
+            
+            # Cấu hình plugin thay icon
+            cat <<EOF > flutter_launcher_icons.yaml
+            flutter_launcher_icons:
+              android: true
+              ios: false
+              image_path: "assets/icon.png"
+            EOF
+            
+            # Chạy công cụ sinh icon của Flutter
+            dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
+          fi
+        env:
+          ICON_URL: ${{ github.event.inputs.icon_url }}
+
+      - name: Build ứng dụng (Assemble APK Split)
+        run: |
+          # Chạy lệnh xuất ra 2 file APK (arm64-v8a và armeabi-v7a) riêng biệt
+          flutter build apk --split-per-abi --release
+
+      - name: Tải file arm64-v8a lên Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ github.event.inputs.app_name || 'app' }}-release-apk
-          path: android/app/build/outputs/apk/release/app-release.apk
+          name: ${{ github.event.inputs.app_name || 'app' }}-arm64-v8a-release-apk
+          path: build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+
+      - name: Tải file armeabi-v7a lên Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ github.event.inputs.app_name || 'app' }}-armeabi-v7a-release-apk
+          path: build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
