@@ -10,16 +10,21 @@ This is a simple Flutter application that acts as a web wrapper. It automaticall
 
 ## How to Build the App (via GitHub Actions)
 
-1. Go to the **Actions** tab in this GitHub repository.
-2. Select the **Build Flutter APK** workflow on the left sidebar.
-3. Click on the **Run workflow** dropdown button.
-4. Fill in the required parameters:
-   - **App Name**: The display name of your app.
-   - **Package Name**: The unique identifier for your app (e.g., `com.yourcompany.yourapp`).
-   - **Web URL**: The website URL your app will load inside the webview.
-   - **Icon URL**: A direct link to download the app's logo/icon (supports standard image formats).
-5. Click **Run workflow** and wait for the build to finish.
-6. Once it completes, scroll down to the **Artifacts** section of the workflow run to download the generated `.apk` files for your device.
+1. **Fork this repository** to your own GitHub account.
+2. Go to the **Actions** tab in your forked repository.
+<img width="323" height="43" alt="image" src="https://github.com/user-attachments/assets/2e4885f6-2ebf-4974-84b4-9750d1ec4b48" />
+
+3. Select the **Build Flutter APK** workflow on the left sidebar.
+<img width="326" height="47" alt="image" src="https://github.com/user-attachments/assets/f5f9e4a7-439a-417a-8ce9-8e117df54278" />
+
+4. Click on the **Run workflow** dropdown button.
+<img width="151" height="60" alt="image" src="https://github.com/user-attachments/assets/ee02247d-104a-415a-868a-d9b5712a942f" />
+
+5. Fill in the required parameters:
+<img width="312" height="482" alt="image" src="https://github.com/user-attachments/assets/4c21422a-9639-4f8a-94b7-d24f93c56ecf" />
+
+6. Click **Run workflow** and wait for the build to finish.
+7. Once it completes, scroll down to the **Artifacts** section of the workflow run to download the generated `.apk` files for your device.
 
 ## Local Development (Optional)
 
