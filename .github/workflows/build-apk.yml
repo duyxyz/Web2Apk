@@ -52,6 +52,8 @@ jobs:
             # Convert và đưa vào assets gốc của thư mục
             convert /tmp/downloaded_icon -resize 1024x1024 ./assets/icon.png
             convert /tmp/downloaded_icon -resize 1024x1024 ./assets/adaptive-icon.png
+            convert /tmp/downloaded_icon -resize 1024x1024 ./assets/splash-icon.png
+            convert /tmp/downloaded_icon -resize 1024x1024 ./assets/favicon.png
           fi
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}

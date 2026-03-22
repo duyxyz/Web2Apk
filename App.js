@@ -5,9 +5,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useCallback, useState, useEffect, useRef } from 'react';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
-
 export default function App() {
   const colorScheme = useColorScheme();
   const [appIsReady, setAppIsReady] = useState(false);
@@ -27,7 +24,6 @@ export default function App() {
         if (backgroundDuration > 60000) {
           setAppIsReady(false);
           setWebViewOpacity(0);
-          await SplashScreen.preventAutoHideAsync();
           setKey(prev => prev + 1);
         }
       }
@@ -41,12 +37,28 @@ export default function App() {
 
   const handleLoadEnd = useCallback(async () => {
     if (!appIsReady) {
-      setTimeout(async () => {
+      setWebViewOpacity(1);
+      setAppIsReady(true);
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        // Bỏ qua lỗi nếu splash screen đã được ẩn
+      }
+    }
+  }, [appIsReady]);
+
+  // Fallback: Tự động ẩn Splash Screen sau 5 giây nếu WebView bị lỗi không gọi được onLoadEnd
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (!appIsReady) {
         setWebViewOpacity(1);
         setAppIsReady(true);
-        await SplashScreen.hideAsync();
-      }, 500);
-    }
+        try {
+          await SplashScreen.hideAsync();
+        } catch (e) {}
+      }
+    }, 5000);
+    return () => clearTimeout(timer);
   }, [appIsReady]);
 
   const themeContainerStyle = colorScheme === 'dark' ? styles.containerDark : styles.containerLight;
@@ -59,7 +71,7 @@ export default function App() {
           <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
           <WebView
             key={key}
-            source={{ uri: 'https://duyxyz.github.io/' }}
+            source={{ uri: 'https://www.example.com/' }}
             style={[styles.webview, { backgroundColor: webviewBackground, opacity: webViewOpacity }]}
             containerStyle={{ backgroundColor: webviewBackground }}
             onLoadEnd={handleLoadEnd}
