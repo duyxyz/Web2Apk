@@ -27,3 +27,13 @@ If you'd like to run or modify the code locally instead:
 2. Clone this repository to your local machine.
 3. Run `flutter pub get` in the project root to install dependencies.
 4. Run `flutter run` to launch the application.
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=duyxyz%2FWeb2APK&type=timeline&logscale=&legend=bottom-right">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=duyxyz/Web2APK&type=timeline&theme=dark&logscale&legend=bottom-right" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=duyxyz/Web2APK&type=timeline&logscale&legend=bottom-right" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=duyxyz/Web2APK&type=timeline&logscale&legend=bottom-right" />
+ </picture>
+</a>
