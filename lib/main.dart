@@ -76,6 +76,9 @@ class _WebAppScreenState extends State<WebAppScreen> {
     supportZoom: false,
     builtInZoomControls: false,
     displayZoomControls: false,
+    overScrollMode: OverScrollMode.NEVER,
+    verticalScrollBarEnabled: false,
+    horizontalScrollBarEnabled: false,
   );
 
   @override
@@ -174,10 +177,24 @@ class _WebAppScreenState extends State<WebAppScreen> {
         );
       }
 
+      // Handle cookies for authenticated downloads
+      String? cookies;
+      if (!kIsWeb) {
+        final cookieManager = CookieManager.instance();
+        final list = await cookieManager.getCookies(url: WebUri(url));
+        cookies = list.map((e) => '${e.name}=${e.value}').join('; ');
+      }
+
       final dio = Dio();
       await dio.download(
         url,
         savePath,
+        options: Options(
+          headers: {
+            if (cookies != null && cookies.isNotEmpty) 'Cookie': cookies,
+            'User-Agent': settings.userAgent,
+          },
+        ),
       );
 
       if (mounted) {
