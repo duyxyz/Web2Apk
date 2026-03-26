@@ -67,15 +67,12 @@ class _WebAppScreenState extends State<WebAppScreen> {
         'Mozilla/5.0 (Linux; Android 13; SM-G981B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36',
     transparentBackground: true,
     safeBrowsingEnabled: true,
-    isHandsFreeAudioSessionAllowed: true,
     allowsInlineMediaPlayback: true,
     allowsBackForwardNavigationGestures: true,
     javaScriptEnabled: true,
     domStorageEnabled: true,
     databaseEnabled: true,
     useHybridComposition: true,
-    allowsLocalHistoryQueries: true,
-    useOnProgressChanged: true,
     useShouldOverrideUrlLoading: true,
     useOnDownloadStart: true,
   );
@@ -283,7 +280,7 @@ class _WebAppScreenState extends State<WebAppScreen> {
                           if (error.type ==
                                   WebResourceErrorType.NOT_CONNECTED_TO_INTERNET ||
                               error.type ==
-                                  WebResourceErrorType.HOST_LOOKUP_FAILED) {
+                                  WebResourceErrorType.HOST_LOOKUP) {
                             setState(() => _isOffline = true);
                           }
                         },
