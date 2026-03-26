@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
@@ -133,7 +134,10 @@ class _WebAppScreenState extends State<WebAppScreen> {
 
   Future<void> _downloadFile(DownloadStartRequest request) async {
     final url = request.url.toString();
-    final fileName = request.suggestedFilename ?? p.basename(url.split('?').first);
+    final fileName = request.suggestedFilename ??
+        (url.startsWith('data:')
+            ? 'downloaded_file'
+            : p.basename(url.split('?').first));
 
     if (Platform.isAndroid) {
       if (await Permission.storage.request().isGranted ||
@@ -177,25 +181,60 @@ class _WebAppScreenState extends State<WebAppScreen> {
         );
       }
 
-      // Handle cookies for authenticated downloads
-      String? cookies;
-      if (!kIsWeb) {
-        final cookieManager = CookieManager.instance();
-        final list = await cookieManager.getCookies(url: WebUri(url));
-        cookies = list.map((e) => '${e.name}=${e.value}').join('; ');
-      }
+      if (url.startsWith('data:')) {
+        // Handle Data URL
+        final data = url.split(',').last;
+        final bytes = base64.decode(data);
+        final file = File(savePath);
+        await file.writeAsBytes(bytes);
+      } else if (url.startsWith('blob:')) {
+        // Handle Blob URL via JavaScript
+        final jsCode = """
+          (async function() {
+            try {
+              const response = await fetch('$url');
+              const blob = await response.blob();
+              return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+              });
+            } catch (e) {
+              return null;
+            }
+          })();
+        """;
+        final base64String = await webViewController?.evaluateJavascript(source: jsCode);
+        if (base64String != null && base64String is String && base64String.contains(',')) {
+          final data = base64String.split(',').last;
+          final bytes = base64.decode(data);
+          final file = File(savePath);
+          await file.writeAsBytes(bytes);
+        } else {
+          throw Exception("Could not fetch blob data");
+        }
+      } else {
+        // Handle standard URL
+        String? cookies;
+        if (!kIsWeb) {
+          final cookieManager = CookieManager.instance();
+          final list = await cookieManager.getCookies(url: WebUri(url));
+          cookies = list.map((e) => '${e.name}=${e.value}').join('; ');
+        }
 
-      final dio = Dio();
-      await dio.download(
-        url,
-        savePath,
-        options: Options(
-          headers: {
-            if (cookies != null && cookies.isNotEmpty) 'Cookie': cookies,
-            'User-Agent': settings.userAgent,
-          },
-        ),
-      );
+        final dio = Dio();
+        await dio.download(
+          url,
+          savePath,
+          options: Options(
+            headers: {
+              if (cookies != null && cookies.isNotEmpty) 'Cookie': cookies,
+              'User-Agent': settings.userAgent,
+            },
+          ),
+        );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
