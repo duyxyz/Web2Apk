@@ -77,12 +77,27 @@ jobs:
           if [ -n "$ICON_URL" ]; then
             echo "Processing Icon download from: $ICON_URL"
             mkdir -p assets
-            curl -L -o assets/icon.png "$ICON_URL"
+            curl -fL --retry 3 --connect-timeout 20 -o assets/icon-source "$ICON_URL"
             
-            # Ensure correct conversion to standard square icon.png using ImageMagick
             sudo apt-get update
             sudo apt-get install -y imagemagick
-            convert assets/icon.png -resize 1024x1024 assets/icon.png
+
+            MIME_TYPE="$(file --brief --mime-type assets/icon-source)"
+            echo "Downloaded icon MIME type: $MIME_TYPE"
+
+            case "$MIME_TYPE" in
+              image/png|image/jpeg|image/webp|image/gif|image/bmp|image/x-icon|image/vnd.microsoft.icon)
+                ;;
+              *)
+                echo "::error::ICON_URL did not return a supported image. MIME type: $MIME_TYPE"
+                echo "First bytes of downloaded file for debugging:"
+                head -c 200 assets/icon-source || true
+                exit 1
+                ;;
+            esac
+
+            # Convert any supported input format into a clean square PNG.
+            convert assets/icon-source -auto-orient -background none -gravity center -resize 1024x1024 -extent 1024x1024 PNG32:assets/icon.png
             
             # Configure icon replacement plugin
             echo "flutter_launcher_icons:" > flutter_launcher_icons.yaml
