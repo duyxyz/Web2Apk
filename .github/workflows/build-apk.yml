@@ -50,7 +50,6 @@ jobs:
 
       - name: Initialize Android platform for Flutter
         run: |
-          # Generate native Android source code for Flutter
           rm -rf android
           flutter create . --platforms android --org "${PKG_NAME}" --project-name app
         env:
@@ -58,23 +57,20 @@ jobs:
 
       - name: Change App Name and Grant Permissions
         run: |
-          # Find the default label line and replace it with the new name
+          # Set App Label
           sed -i "s/android:label=\"app\"/android:label=\"${APP_NAME}\"/g" android/app/src/main/AndroidManifest.xml
           
-          # Flutter Release builds don't have internet by default, need to add INTERNET permission
+          # Add permissions
           sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET" />' android/app/src/main/AndroidManifest.xml
-          
-          # Native vibrate for webviews
           sed -i '/<application/i \    <uses-permission android:name="android.permission.VIBRATE" />' android/app/src/main/AndroidManifest.xml
           
-          # Support optional insecure HTTP links
+          # Allow HTTP traffic
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
         env:
           APP_NAME: ${{ github.event.inputs.app_name }}
 
       - name: Apply New Website URL
         run: |
-          # Replace URL in Flutter source code
           URL="${WEB_URL:-https://www.example.com/}"
           sed -i "s|https://www.example.com/|$URL|g" lib/screens/web_app_screen.dart
         env:
@@ -86,37 +82,18 @@ jobs:
       - name: Download and generate App Icon automatically
         run: |
           if [ -n "$ICON_URL" ]; then
-            echo "Processing Icon download from: $ICON_URL"
             mkdir -p assets
             curl -fL --retry 3 --connect-timeout 20 -o assets/icon-source "$ICON_URL"
-            
-            sudo apt-get update
-            sudo apt-get install -y imagemagick
-
-            MIME_TYPE="$(file --brief --mime-type assets/icon-source)"
-            echo "Downloaded icon MIME type: $MIME_TYPE"
-
-            case "$MIME_TYPE" in
-              image/png|image/jpeg|image/webp|image/gif|image/bmp|image/x-icon|image/vnd.microsoft.icon)
-                ;;
-              *)
-                echo "::error::ICON_URL did not return a supported image. MIME type: $MIME_TYPE"
-                echo "First bytes of downloaded file for debugging:"
-                head -c 200 assets/icon-source || true
-                exit 1
-                ;;
-            esac
-
-            # Convert any supported input format into a clean square PNG.
+            sudo apt-get update && sudo apt-get install -y imagemagick
             convert assets/icon-source -auto-orient -background none -gravity center -resize 1024x1024 -extent 1024x1024 PNG32:assets/icon.png
             
-            # Configure icon replacement plugin
-            echo "flutter_launcher_icons:" > flutter_launcher_icons.yaml
-            echo "  android: true" >> flutter_launcher_icons.yaml
-            echo "  ios: false" >> flutter_launcher_icons.yaml
-            echo "  image_path: \"assets/icon.png\"" >> flutter_launcher_icons.yaml
+            cat <<EOF > flutter_launcher_icons.yaml
+            flutter_launcher_icons:
+              android: true
+              ios: false
+              image_path: "assets/icon.png"
+            EOF
             
-            # Run Flutter icon generation tool
             dart run flutter_launcher_icons -f flutter_launcher_icons.yaml
           fi
         env:
@@ -125,33 +102,31 @@ jobs:
       - name: Download and generate Splash Screen automatically
         run: |
           mkdir -p assets
+          COLOR="${SPLASH_COLOR:-#ffffff}"
           
-          # Base configuration
-          echo "flutter_native_splash:" > flutter_native_splash.yaml
-          echo "  color: \"$SPLASH_COLOR\"" >> flutter_native_splash.yaml
-          echo "  color_dark: \"$SPLASH_COLOR\"" >> flutter_native_splash.yaml
-          echo "  android: true" >> flutter_native_splash.yaml
-          echo "  android_12:" >> flutter_native_splash.yaml
-          echo "    color: \"$SPLASH_COLOR\"" >> flutter_native_splash.yaml
-          echo "    color_dark: \"$SPLASH_COLOR\"" >> flutter_native_splash.yaml
+          # Create base config using heredoc to ensure correct YAML formatting
+          cat <<EOF > flutter_native_splash.yaml
+          flutter_native_splash:
+            color: "$COLOR"
+            color_dark: "$COLOR"
+            android: true
+            android_12:
+              color: "$COLOR"
+              color_dark: "$COLOR"
+          EOF
           
           if [ -n "$SPLASH_URL" ]; then
-            echo "Processing Splash download from: $SPLASH_URL"
             curl -fL --retry 3 --connect-timeout 20 -o assets/splash-source "$SPLASH_URL"
-            
-            # Ensure imagemagick is available (installed in previous step if ICON_URL was set, otherwise we might need to install it)
             if ! command -v convert &> /dev/null; then
               sudo apt-get update && sudo apt-get install -y imagemagick
             fi
-            
-            # Convert to PNG
             convert assets/splash-source -auto-orient -background none -gravity center -resize 1024x1024 -extent 1024x1024 PNG32:assets/icon_splash.png
             
-            echo "  image: \"assets/icon_splash.png\"" >> flutter_native_splash.yaml
-            echo "    image: \"assets/icon_splash.png\"" >> flutter_native_splash.yaml
+            # Append image paths with correct indentation
+            sed -i '/flutter_native_splash:/a \  image: "assets/icon_splash.png"' flutter_native_splash.yaml
+            sed -i '/android_12:/a \    image: "assets/icon_splash.png"' flutter_native_splash.yaml
           fi
           
-          # Run Flutter splash generation tool
           dart run flutter_native_splash:create --path flutter_native_splash.yaml
         env:
           SPLASH_URL: ${{ github.event.inputs.splash_url }}
@@ -159,7 +134,6 @@ jobs:
 
       - name: Build application (Assemble APK Split)
         run: |
-          # Run command to output 2 separate APK files (arm64-v8a and armeabi-v7a)
           flutter build apk --split-per-abi --release
 
       - name: Upload arm64-v8a file to Artifacts
