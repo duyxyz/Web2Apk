@@ -80,7 +80,8 @@ jobs:
             mkdir -p assets
             curl -fL --retry 3 --connect-timeout 20 -o assets/icon-source "$ICON_URL"
             sudo apt-get update && sudo apt-get install -y imagemagick
-            convert assets/icon-source -resize 1024x1024 assets/icon.png
+            # Keep Aspect Ratio for Icon, centering it in a 1024x1024 canvas
+            convert assets/icon-source -resize 1024x1024 -gravity center -background none -extent 1024x1024 assets/icon.png
             
             echo "flutter_launcher_icons:" > flutter_launcher_icons.yaml
             echo "  android: true" >> flutter_launcher_icons.yaml
@@ -97,9 +98,11 @@ jobs:
           mkdir -p assets
           COLOR="${SPLASH_COLOR:-#ffffff}"
           
+          # Base config with NO automatic scaling in YAML
           echo "flutter_native_splash:" > flutter_native_splash.yaml
           echo "  color: \"$COLOR\"" >> flutter_native_splash.yaml
           echo "  color_dark: \"$COLOR\"" >> flutter_native_splash.yaml
+          echo "  android_gravity: center" >> flutter_native_splash.yaml
           echo "  android: true" >> flutter_native_splash.yaml
           echo "  android_12:" >> flutter_native_splash.yaml
           echo "    color: \"$COLOR\"" >> flutter_native_splash.yaml
@@ -110,7 +113,9 @@ jobs:
             if ! command -v convert &> /dev/null; then
               sudo apt-get update && sudo apt-get install -y imagemagick
             fi
-            convert assets/splash-source -resize 1024x1024 assets/icon_splash.png
+            # Convert WITHOUT resizing to keep original quality/ratio
+            convert assets/splash-source assets/icon_splash.png
+            
             sed -i '/flutter_native_splash:/a \  image: "assets/icon_splash.png"' flutter_native_splash.yaml
             sed -i '/android_12:/a \    image: "assets/icon_splash.png"' flutter_native_splash.yaml
           fi
