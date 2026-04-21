@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WebAppScreen extends StatefulWidget {
@@ -187,10 +188,12 @@ class _WebAppScreenState extends State<WebAppScreen> {
                   },
                   onLoadStop: (controller, url) async {
                     pullToRefreshController?.endRefreshing();
+                    FlutterNativeSplash.remove();
                   },
                   onProgressChanged: (controller, progress) {
                     if (progress == 100) {
                       pullToRefreshController?.endRefreshing();
+                      FlutterNativeSplash.remove();
                     }
                   },
                   shouldOverrideUrlLoading:
@@ -205,6 +208,7 @@ class _WebAppScreenState extends State<WebAppScreen> {
                   },
                   onReceivedError: (controller, request, error) {
                     pullToRefreshController?.endRefreshing();
+                    FlutterNativeSplash.remove();
                     if (error.type ==
                             WebResourceErrorType.NOT_CONNECTED_TO_INTERNET ||
                         error.type == WebResourceErrorType.HOST_LOOKUP) {

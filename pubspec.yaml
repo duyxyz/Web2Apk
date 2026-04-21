@@ -12,11 +12,21 @@ dependencies:
   flutter_inappwebview: ^6.1.5
   connectivity_plus: ^6.1.0
   url_launcher: ^6.3.1
+  flutter_native_splash: ^2.4.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_launcher_icons: ^0.14.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
+
+flutter_native_splash:
+  color: "#ffffff"
+  color_dark: "#000000"
+  android: true
+  android_12:
+    color: "#ffffff"
+    color_dark: "#000000"

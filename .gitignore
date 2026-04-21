@@ -11,3 +11,5 @@ windows/
 web/
 *.iml
 *.log
+.agents/skills
+skills-lock.json
